@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="3"><dataSet config="main"><source path="/Users/zhenqiang/PracticeDemos/LineChartDemo/hellocharts-library/assets"/><source path="/Users/zhenqiang/PracticeDemos/LineChartDemo/hellocharts-library/build/generated/assets/shaders/release"/></dataSet><dataSet config="release"><source path="/Users/zhenqiang/PracticeDemos/LineChartDemo/hellocharts-library/src/release/assets"/></dataSet></merger>
