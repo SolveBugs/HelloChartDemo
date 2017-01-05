@@ -1,19 +1,22 @@
 package com.example.zq.linechartdemo;
 
 import android.graphics.Color;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import lecho.lib.hellocharts.gesture.ContainerScrollType;
-import lecho.lib.hellocharts.gesture.ZoomType;
 import lecho.lib.hellocharts.model.Axis;
-import lecho.lib.hellocharts.model.ChartData;
 import lecho.lib.hellocharts.model.Line;
 import lecho.lib.hellocharts.model.LineChartData;
 import lecho.lib.hellocharts.model.PointValue;
+import lecho.lib.hellocharts.model.ValueShape;
+import lecho.lib.hellocharts.model.Viewport;
 import lecho.lib.hellocharts.view.LineChartView;
 
 public class MainActivity extends AppCompatActivity {
@@ -21,7 +24,16 @@ public class MainActivity extends AppCompatActivity {
     private LineChartView mChartView;
     private List<PointValue> values;
     private List<Line> lines;
-
+    private LineChartData lineChartData;
+    private LineChartView lineChartView;
+    private List<Line> linesList;
+    private List<PointValue> pointValueList;
+    private List<PointValue> points;
+    private int position = 0;
+    private Timer timer;
+    private boolean isFinish = true;
+    private Axis axisY, axisX;
+    private Random random = new Random();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,47 +41,111 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mChartView = (LineChartView) findViewById(R.id.chart);
 
-        initDatas();
-        initLines();
-        initChart();
+        initView();
+        timer = new Timer();
     }
 
-    /**
-     * 设置折线表相关属性
-     */
-    private void initChart() {
-        mChartView.setInteractive(true);//设置图表是可以交互的（拖拽，缩放等效果的前提）
-        mChartView.setZoomType(ZoomType.HORIZONTAL_AND_VERTICAL);//设置缩放方向
+    @Override
+    protected void onResume() {
+        super.onResume();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                //实时添加新的点
+                PointValue value1 = new PointValue(position * 5, random.nextInt(100) + 40);
+                value1.setLabel("00:00");
+                pointValueList.add(value1);
 
-        LineChartData data = new LineChartData();
-        Axis axisX = new Axis();//x轴
-        Axis axisY = new Axis();//y轴
-        data.setAxisXBottom(axisX);
+                float x = value1.getX();
+                //根据新的点的集合画出新的线
+                Line line = new Line(pointValueList);
+                line.setColor(Color.RED);
+                line.setShape(ValueShape.CIRCLE);
+                line.setCubic(true);//曲线是否平滑，即是曲线还是折线
+
+                linesList.clear();
+                linesList.add(line);
+                lineChartData = initDatas(linesList);
+                lineChartView.setLineChartData(lineChartData);
+                //根据点的横坐实时变幻坐标的视图范围
+                Viewport port;
+                if (x > 50) {
+                    port = initViewPort(x - 50, x);
+                } else {
+                    port = initViewPort(0, 50);
+                }
+                lineChartView.setCurrentViewport(port);//当前窗口
+
+                Viewport maPort = initMaxViewPort(x);
+                lineChartView.setMaximumViewport(maPort);//最大窗口
+                position++;
+            }
+        }, 300, 300);
+    }
+
+    private void initView() {
+        lineChartView = (LineChartView) findViewById(R.id.chart);
+        pointValueList = new ArrayList<>();
+        linesList = new ArrayList<>();
+
+        //初始化坐标轴
+        axisY = new Axis();
+        //添加坐标轴的名称
+        axisY.setLineColor(Color.parseColor("#aab2bd"));
+        axisY.setTextColor(Color.parseColor("#aab2bd"));
+        axisX = new Axis();
+        axisX.setLineColor(Color.parseColor("#aab2bd"));
+        lineChartData = initDatas(null);
+        lineChartView.setLineChartData(lineChartData);
+
+        Viewport port = initViewPort(0, 50);
+        lineChartView.setCurrentViewportWithAnimation(port);
+        lineChartView.setInteractive(false);
+        lineChartView.setScrollEnabled(true);
+        lineChartView.setValueTouchEnabled(true);
+        lineChartView.setFocusableInTouchMode(true);
+        lineChartView.setViewportCalculationEnabled(false);
+        lineChartView.setContainerScrollEnabled(true, ContainerScrollType.HORIZONTAL);
+        lineChartView.startDataAnimation();
+        points = new ArrayList<>();
+    }
+
+
+    private LineChartData initDatas(List<Line> lines) {
+        LineChartData data = new LineChartData(lines);
         data.setAxisYLeft(axisY);
-
-        data.setLines(lines);
-
-        mChartView.setLineChartData(data);//给图表设置数据
+        data.setAxisXBottom(axisX);
+        return data;
     }
 
     /**
-     * 折线
+     * 当前显示区域
+     *
+     * @param left
+     * @param right
+     * @return
      */
-    private void initLines() {
-        Line line = new Line(values).setColor(Color.BLUE);//声明线并设置颜色
-        line.setCubic(false);//设置是平滑的还是直的
-        lines = new ArrayList<Line>();
-        lines.add(line);
+    private Viewport initViewPort(float left, float right) {
+        Viewport port = new Viewport();
+        port.top = 150;
+        port.bottom = 0;
+        port.left = left;
+        port.right = right;
+        return port;
     }
 
     /**
-     * 初始化折线上的点
+     * 最大显示区域
+     *
+     * @param right
+     * @return
      */
-    private void initDatas() {
-        values = new ArrayList<PointValue>();//折线上的点
-        values.add(new PointValue(0, 2));
-        values.add(new PointValue(1, 4));
-        values.add(new PointValue(2, 3));
-        values.add(new PointValue(3, 4));
+    private Viewport initMaxViewPort(float right) {
+        Viewport port = new Viewport();
+        port.top = 150;
+        port.bottom = 0;
+        port.left = 0;
+        port.right = right + 50;
+        return port;
     }
 }
